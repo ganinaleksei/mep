@@ -42,7 +42,7 @@ int main(){
     ;
     U[0] = new double[nX];
     for(int x = 0; x < nX; x++){
-      U[0][x] = u0(x);
+      U[0][x] = u0(x * h);
     }
     for(int t = 1; t < nTime; t++){ // шагаем по времени
       U[t] = new double[nX];
