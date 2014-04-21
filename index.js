@@ -53,18 +53,20 @@ $(document).ready(function(){
         });
       }
     
-      obj.u = adapter(obj.u);
-      obj.f = adapter(obj.f);
-    
+      
+      obj.f = adapter(obj.Gauss.f);
+      obj.G = adapter(obj.Gauss.u);
+      obj.J = adapter(obj.Jacobi.u);
       //console.log(data);
       //console.log(data);
       $("#info").show();
       $("#controls").show();
       
       
-      $("#info").prepend("Опорных точек: " + obj.u[0].length + "<br>");
-      $("#info").prepend("Временных срезов: " + obj.u.length + "<br>");
-      window.eplot = $.jqplot('iplot', [obj.f[0], obj.u[0]], options);
+      $("#info").prepend("Опорных точек: " + obj.Gauss.u[0].length + "<br>");
+      $("#info").prepend("Временных срезов: " + obj.Gauss.u.length + "<br>");
+      //window.eplot = $.jqplot('iplot', [obj.f[0], obj.u[0]], options);
+      window.eplot = $.jqplot('iplot', [obj.f[0], obj.G[0], obj.J[0]], options);
       var i = 1;
       var delay = 1;
       window.d = 1;
@@ -72,10 +74,11 @@ $(document).ready(function(){
       setInterval(function(){
 	i += d;
 	$("#speed").html("Скорость: " + d*deltaTimeShow / delay);
-        if((i < obj.u.length) && (i > 0)){
+        if((i < obj.Gauss.u.length) && (i > 0)){
 	  etime.innerHTML = "Время: " + (i * deltaTimeShow);
 	  eplot.series[0].data = obj.f[0];
-	  eplot.series[1].data = obj.u[i];
+	  eplot.series[1].data = obj.G[i];
+	  eplot.series[2].data = obj.J[i];
 	  eplot.resetAxesScale(); 
 	  eplot.replot(); 
         }

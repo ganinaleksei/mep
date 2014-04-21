@@ -22,6 +22,7 @@ int main(){
   auto f = [](double t, double x){ // функция, задающая внешнее воздействие
     return (((x >= 0.58) && (x <= 0.6))||((x >= 0.78) && (x <= 0.8))) ? 5 : 0; //2 : 0;
     //return ((x >= 0) && (x <= 2)) ? 2 : 0;
+    //return 1000;
   };
   
   double
@@ -66,7 +67,7 @@ int main(){
   };
   
   auto solveJacobi = [=](){
-    const double eps = 0.001; ///< желаемая точность 
+    const double eps = 0.0000001; ///< желаемая точность 
     double **U = new double*[nTime]; // решение
     double * tempX = new double[nX];
     U[0] = new double[nX];
@@ -92,39 +93,6 @@ int main(){
       for(int x = 0; x < nX; x++){
 	U[t][x] = ksi(t-1, x); // начальное приближение
       }
-      
-      
-          /// N - размерность матрицы; A[N][N] - матрица коэффициентов, F[N] - столбец свободных членов,
-    /// X[N] - начальное приближение, ответ записывается также в X[N];
-    // X[] === U[]
-    
-    /*auto jacobi = [=](int N, double **A, double *F, double *X){
-      double * TempX = new double[N];
-      double norm; // норма, определяемая как наибольшая разность компонент столбца иксов соседних итераций.
-      do{
-	for(int i = 0; i < N; i++) {
-	  TempX[i] = F[i];
-	  for(int g = 0; g < N; g++) {
-	    if(i != g){
-	      TempX[i] -= A[i][g] * X[g];
-	    }
-	  }
-	  TempX[i] /= A[i][i];
-	}
-	norm = fabs(X[0] - TempX[0]);
-	for(int h = 0; h < N; h++) {
-	  if(fabs(X[h] - TempX[h]) > norm){
-	    norm = fabs(X[h] - TempX[h]);
-	  }
-	  X[h] = TempX[h];
-	}
-      }while (norm > eps);
-      delete[] TempX;
-    };*/
-      
-      
-      
-      
       do{
         tempX[0] = ksi(t-1, 0);
         tempX[0] -= c * U[t][1];
@@ -146,71 +114,14 @@ int main(){
 	  U[t][x] = tempX[x];
 	}
       }while (norm > eps);
-	
-	// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@22
- /*	
-	
-	for(int x = 0; x < nX; x++) {
-	  tempX[x] = ksi(t - 1, x);
-	  for(int g = 0; g < N; g++) {
-	    if(i != g){
-	      TempX[i] -= A[i][g] * X[g];
-	    }
-	  }
-	  TempX[i] /= A[i][i];
-	}
-	norm = fabs(X[0] - TempX[0]);
-	for(int h = 0; h < N; h++) {
-	  if(fabs(X[h] - TempX[h]) > norm){
-	    norm = fabs(X[h] - TempX[h]);
-	  }
-	  X[h] = TempX[h];
-	}
-      }while (norm > eps);*/
       // NOTE конец решения системы итерационным методом Якоби
     }
     delete[] tempX;
     return U;
-
-    /*auto ksi = [&](int t, int x){
-      return U[t][x] + dt * f(t * dt, x * h);
-    };*/
-
-    /// N - размерность матрицы; A[N][N] - матрица коэффициентов, F[N] - столбец свободных членов,
-    /// X[N] - начальное приближение, ответ записывается также в X[N];
-  
-    
-    /*auto jacobi = [=](int N, double **A, double *F, double *X){
-      double * TempX = new double[N];
-      double norm; // норма, определяемая как наибольшая разность компонент столбца иксов соседних итераций.
-      do{
-	for(int i = 0; i < N; i++) {
-	  TempX[i] = F[i];
-	  for(int g = 0; g < N; g++) {
-	    if(i != g){
-	      TempX[i] -= A[i][g] * X[g];
-	    }
-	  }
-	  TempX[i] /= A[i][i];
-	}
-	norm = fabs(X[0] - TempX[0]);
-	for(int h = 0; h < N; h++) {
-	  if(fabs(X[h] - TempX[h]) > norm){
-	    norm = fabs(X[h] - TempX[h]);
-	  }
-	  X[h] = TempX[h];
-	}
-      }while (norm > eps);
-      delete[] TempX;
-    };*/
   };
-  
-  auto printJSON = [=](double** data){
-    std::ofstream resultJS("resultDATA.js");
-    resultJS << "var deltaX = " <<  h << ";";
-    resultJS << "var time = " << mTime << ";";
-    resultJS << "var deltaTimeShow = " << dt << ";";
-    resultJS << "var data = {\"u\":[";
+  std::ofstream resultJS("resultDATA.js");
+  auto printJSON = [&](double** data){
+    resultJS << "{\"u\":[";
     for(int t = 0; t < nTime; t++){
       resultJS << "[";
       for(int x = 0; x < nX; x++){
@@ -228,7 +139,7 @@ int main(){
     for(int t = 0; t < nTime; t++){
       resultJS << "[";
       for(int x = 0; x < nX; x++){
-        resultJS << f(t * dt, x * h);//f(data[i][j], i * deltaTShow, j * deltaX);
+        resultJS << f(t * dt, x * h);
         if(x < (nX - 1)){
           resultJS << ",";
         }
@@ -240,7 +151,13 @@ int main(){
     }
     resultJS << "]}";
   };
-  //printJSON(solveGauss());
+  resultJS << "var deltaX = " <<  h << ";";
+  resultJS << "var time = " << mTime << ";";
+  resultJS << "var deltaTimeShow = " << dt << ";";
+  resultJS << "var data = {\"Gauss\":";
+  printJSON(solveGauss());
+  resultJS << ",Jacobi:";
   printJSON(solveJacobi());
+  resultJS << "};";
   return 0;
 }

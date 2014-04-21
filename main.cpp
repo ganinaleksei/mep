@@ -22,6 +22,7 @@ int main(){
   auto f = [](double t, double x){ // функция, задающая внешнее воздействие
     return (((x >= 0.58) && (x <= 0.6))||((x >= 0.78) && (x <= 0.8))) ? 5 : 0; //2 : 0;
     //return ((x >= 0) && (x <= 2)) ? 2 : 0;
+    //return 1000;
   };
   
   double
@@ -66,7 +67,7 @@ int main(){
   };
   
   auto solveJacobi = [=](){
-    const double eps = 0.001; ///< желаемая точность 
+    const double eps = dt * 0.0001; ///< желаемая точность 
     double **U = new double*[nTime]; // решение
     double * tempX = new double[nX];
     U[0] = new double[nX];
@@ -118,13 +119,9 @@ int main(){
     delete[] tempX;
     return U;
   };
-  
-  auto printJSON = [=](double** data){
-    std::ofstream resultJS("resultDATA.js");
-    resultJS << "var deltaX = " <<  h << ";";
-    resultJS << "var time = " << mTime << ";";
-    resultJS << "var deltaTimeShow = " << dt << ";";
-    resultJS << "var data = {\"u\":[";
+  std::ofstream resultJS("resultDATA.js");
+  auto printJSON = [&](double** data){
+    resultJS << "{\"u\":[";
     for(int t = 0; t < nTime; t++){
       resultJS << "[";
       for(int x = 0; x < nX; x++){
@@ -154,7 +151,13 @@ int main(){
     }
     resultJS << "]}";
   };
-  //printJSON(solveGauss());
+  resultJS << "var deltaX = " <<  h << ";";
+  resultJS << "var time = " << mTime << ";";
+  resultJS << "var deltaTimeShow = " << dt << ";";
+  resultJS << "var data = {\"Gauss\":";
+  printJSON(solveGauss());
+  resultJS << ",Jacobi:";
   printJSON(solveJacobi());
+  resultJS << "};";
   return 0;
 }
