@@ -1,3 +1,5 @@
+run: main.lexe
+	./main.lexe
 main.lexe: main.cpp
 	g++ -std=c++11 ./main.cpp -o ./main.lexe
 asm: main.cpp

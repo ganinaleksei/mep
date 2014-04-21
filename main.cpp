@@ -65,7 +65,7 @@ int main(){
     }
     return U;
   };
-  
+  int *jacobiIterationCount = new int[nTime];
   auto solveJacobi = [=](){
     const double eps = dt * 0.0001; ///< желаемая точность 
     double **U = new double*[nTime]; // решение
@@ -91,28 +91,29 @@ int main(){
       double norm; // норма, определяемая как наибольшая разность компонент столбца иксов соседних итераций.
       U[t] = new double[nX];
       for(int x = 0; x < nX; x++){
-	U[t][x] = ksi(t-1, x); // начальное приближение
+        U[t][x] = ksi(t-1, x); // начальное приближение
       }
+      jacobiIterationCount[t] = 0;
       do{
+        jacobiIterationCount[t]++;
         tempX[0] = ksi(t-1, 0);
         tempX[0] -= c * U[t][1];
-	tempX[0] /= b;
-	for(int x = 1; x < nX - 1; x++){
-	  tempX[x] = ksi(t-1, x);
+        tempX[0] /= b;
+        for(int x = 1; x < nX - 1; x++){
+          tempX[x] = ksi(t-1, x);
           tempX[x] -= a * U[t][x - 1] + c * U[t][x + 1];
-	  tempX[x] /= b;
+          tempX[x] /= b;
         }
         tempX[nX - 1] = ksi(t-1, 0);
-	tempX[nX - 1] -= a * U[t][nX - 2];
-	tempX[nX - 1] /= b;
-	
-	norm = fabs(U[t][0] - tempX[0]);
-	for(int x = 0; x < nX; x++) {
-	  if(fabs(U[t][x] - tempX[x]) > norm){
-	    norm = fabs(U[t][x] - tempX[x]);
-	  }
-	  U[t][x] = tempX[x];
-	}
+        tempX[nX - 1] -= a * U[t][nX - 2];
+        tempX[nX - 1] /= b;
+        norm = fabs(U[t][0] - tempX[0]);
+        for(int x = 0; x < nX; x++) {
+          if(fabs(U[t][x] - tempX[x]) > norm){
+            norm = fabs(U[t][x] - tempX[x]);
+          }
+          U[t][x] = tempX[x];
+        }
       }while (norm > eps);
       // NOTE конец решения системы итерационным методом Якоби
     }
@@ -151,6 +152,13 @@ int main(){
     }
     resultJS << "]}";
   };
+  auto printIntArray = [&](const char *arrayName, int *array, int size){
+    resultJS << "var  " << arrayName << " = [" << array[0];
+    for(int i = 1; i < size; i++){
+      resultJS << "," << array[i];
+    }
+    resultJS << "];";
+  };
   resultJS << "var deltaX = " <<  h << ";";
   resultJS << "var time = " << mTime << ";";
   resultJS << "var deltaTimeShow = " << dt << ";";
@@ -159,5 +167,6 @@ int main(){
   resultJS << ",Jacobi:";
   printJSON(solveJacobi());
   resultJS << "};";
+  printIntArray("jacobiIterationCount", jacobiIterationCount, nTime);
   return 0;
 }
