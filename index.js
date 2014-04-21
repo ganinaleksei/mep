@@ -32,19 +32,19 @@ $(document).ready(function(){
         });
       });
     }
-    obj.f = adapter(obj.Gauss.f);
-    obj.G = adapter(obj.Gauss.u);
-    obj.J = adapter(obj.Jacobi.u);
+    obj.gauss = adapter(obj.gauss);
+    obj.jacobi = adapter(obj.jacobi);
+    obj.f = adapter(obj.f);
     //console.log(data);
     //console.log(data);
     $("#info").show();
     $("#controls").show();
-    $("#info").prepend("Опорных точек: " + obj.Gauss.u[0].length + "<br>");
-    $("#info").prepend("Временных срезов: " + obj.Gauss.u.length + "<br>");
+    $("#info").prepend("Опорных точек: " + obj.gauss[0].length + "<br>");
+    $("#info").prepend("Временных срезов: " + obj.gauss.length + "<br>");
     //window.eplot = $.jqplot('iplot', [obj.f[0], obj.u[0]], options);
-    window.eplot = $.jqplot("iplot", [obj.f[0], obj.G[0], obj.J[0]], options);
+    window.eplot = $.jqplot("iplot", [obj.f[0], obj.gauss[0], obj.jacobi[0]], options);
     window.jacobiIterationCountPlot = $.jqplot("jacobiIterationCount",
-      [jacobiIterationCount.map(function(count, i){
+      [obj.jacobiIterationCount.map(function(count, i){
         return [(i * deltaTimeShow), count];
       })],
       {
@@ -66,11 +66,11 @@ $(document).ready(function(){
     setInterval(function(){
       i += d;
       $("#speed").html("Скорость: " + d*deltaTimeShow / delay);
-      if((i < obj.Gauss.u.length) && (i > 0)){
+      if((i < obj.gauss.length) && (i > 0)){
         etime.innerHTML = "Время: " + (i * deltaTimeShow);
         eplot.series[0].data = obj.f[0];
-        eplot.series[1].data = obj.G[i];
-        eplot.series[2].data = obj.J[i];
+        eplot.series[1].data = obj.gauss[i];
+        eplot.series[2].data = obj.jacobi[i];
         eplot.resetAxesScale(); 
         eplot.replot();
       }

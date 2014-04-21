@@ -1,6 +1,7 @@
 #include <iostream>
 #include <math.h>
 #include <fstream>
+#include <functional>
 int main(){
   double 
     h = 0.01 // шаг по х
@@ -121,7 +122,7 @@ int main(){
     return U;
   };
   std::ofstream resultJS("resultDATA.js");
-  auto printJSON = [&](double** data){
+  /*auto printJSON = [&](double** data){
     resultJS << "{\"u\":[";
     for(int t = 0; t < nTime; t++){
       resultJS << "[";
@@ -151,22 +152,69 @@ int main(){
       }
     }
     resultJS << "]}";
+  };*/
+  auto printDouble2DArray = [&](double **array, int xSize, int ySize){
+    resultJS << "[";
+    for(int y = 0; y < ySize; y++){
+      resultJS << "[";
+      for(int x = 0; x < xSize; x++){
+        resultJS << array[y][x];
+        if(x < (xSize - 1)){
+          resultJS << ",";
+        }
+      }
+      resultJS << "]";
+      if(y < (ySize - 1)){
+        resultJS << ",";
+      }
+    }
+    resultJS << "]";
   };
-  auto printIntArray = [&](const char *arrayName, int *array, int size){
-    resultJS << "var  " << arrayName << " = [" << array[0];
+  auto printF = [&](){
+    resultJS << "[";
+    for(int t = 0; t < nTime; t++){
+      resultJS << "[";
+      for(int x = 0; x < nX; x++){
+        resultJS << f(t * dt, x * h);
+        if(x < (nX - 1)){
+          resultJS << ",";
+        }
+      }
+      resultJS << "]";
+      if(t < (nTime - 1)){
+        resultJS << ",";
+      }
+    }
+    resultJS << "]";
+  };
+  auto printIntArray = [&](int *array, int size){
+    resultJS << "[" << array[0];
     for(int i = 1; i < size; i++){
       resultJS << "," << array[i];
     }
-    resultJS << "];";
+    resultJS << "]";
   };
   resultJS << "var deltaX = " <<  h << ";";
   resultJS << "var time = " << mTime << ";";
   resultJS << "var deltaTimeShow = " << dt << ";";
-  resultJS << "var data = {\"Gauss\":";
+  /*printDouble2DArray("gauss", solveGauss(), nX, nTime);
+  printDouble2DArray("jacobi", solveJacobi(), nX, nTime);
+  printF();*/
+  resultJS << "var data = {";
+  resultJS << "jacobi:";
+  printDouble2DArray(solveJacobi(), nX, nTime);
+  resultJS << ",gauss:";
+  printDouble2DArray(solveGauss(), nX, nTime);
+  resultJS << ",f:";
+  printF();
+  resultJS << ",jacobiIterationCount:";
+  printIntArray(jacobiIterationCount, nTime);
+  resultJS << "};";
+  //printDouble2DArray("f", solveJacobi(), nX, nTime);
+  /*resultJS << "var data = {\"Gauss\":";
   printJSON(solveGauss());
   resultJS << ",Jacobi:";
   printJSON(solveJacobi());
-  resultJS << "};";
-  printIntArray("jacobiIterationCount", jacobiIterationCount, nTime);
+  resultJS << "};";*/
   return 0;
 }
