@@ -1,6 +1,7 @@
 #include <iostream>
 #include <math.h>
 #include <fstream>
+#include <functional>
 int main(){
   double 
     h = 0.01 // шаг по х
@@ -65,9 +66,9 @@ int main(){
     }
     return U;
   };
-  
+  int *jacobiIterationCount = new int[nTime];
   auto solveJacobi = [=](){
-    const double eps = 0.0000001; ///< желаемая точность 
+    const double eps = dt * 0.0001; ///< желаемая точность 
     double **U = new double*[nTime]; // решение
     double * tempX = new double[nX];
     U[0] = new double[nX];
@@ -91,36 +92,103 @@ int main(){
       double norm; // норма, определяемая как наибольшая разность компонент столбца иксов соседних итераций.
       U[t] = new double[nX];
       for(int x = 0; x < nX; x++){
-	U[t][x] = ksi(t-1, x); // начальное приближение
+        U[t][x] = ksi(t-1, x); // начальное приближение
       }
+      jacobiIterationCount[t] = 0;
       do{
+        jacobiIterationCount[t]++;
         tempX[0] = ksi(t-1, 0);
         tempX[0] -= c * U[t][1];
-	tempX[0] /= b;
-	for(int x = 1; x < nX - 1; x++){
-	  tempX[x] = ksi(t-1, x);
+        tempX[0] /= b;
+        for(int x = 1; x < nX - 1; x++){
+          tempX[x] = ksi(t-1, x);
           tempX[x] -= a * U[t][x - 1] + c * U[t][x + 1];
-	  tempX[x] /= b;
+          tempX[x] /= b;
         }
         tempX[nX - 1] = ksi(t-1, 0);
-	tempX[nX - 1] -= a * U[t][nX - 2];
-	tempX[nX - 1] /= b;
-	
-	norm = fabs(U[t][0] - tempX[0]);
-	for(int x = 0; x < nX; x++) {
-	  if(fabs(U[t][x] - tempX[x]) > norm){
-	    norm = fabs(U[t][x] - tempX[x]);
-	  }
-	  U[t][x] = tempX[x];
-	}
+        tempX[nX - 1] -= a * U[t][nX - 2];
+        tempX[nX - 1] /= b;
+        norm = fabs(U[t][0] - tempX[0]);
+        for(int x = 0; x < nX; x++) {
+          if(fabs(U[t][x] - tempX[x]) > norm){
+            norm = fabs(U[t][x] - tempX[x]);
+          }
+          U[t][x] = tempX[x];
+        }
       }while (norm > eps);
       // NOTE конец решения системы итерационным методом Якоби
     }
     delete[] tempX;
     return U;
   };
+  // NOTE начало решения системы итерационным методом Якоби
+  // NOTE в случае расчета электронной плотности матрица имеет вид:
+  // b c 0 0 0 0 0 | ksi[t-1][0]
+  // a b c 0 0 0 0 | ksi[t-1][1]
+  // 0 a b c 0 0 0 | ksi[t-1][2]
+  // 0 0 a b c 0 0 | ksi[t-1][3]
+  // 0 0 0 a b c 0 | ksi[t-1][4]
+  // 0 0 0 0 a b c | ksi[t-1][5]
+  // 0 0 0 0 0 a b | ksi[t-1][6]
+  double **relDis, **absDis;
+  auto absDiscrepancy = [&](double **U){
+    // идем по времени
+    auto ksi = [&](int t, int x){
+      return U[t][x] + dt * f(t * dt, x * h);
+    };
+    // считаем абсолютную невязку
+    relDis = new double*[nTime];
+    relDis[0] = new double[nX];
+    absDis = new double*[nTime];
+    absDis[0] = new double[nX];
+    for(int x = 0; x < nX; x++){
+      absDis[0][x] = 0;
+      
+    }
+    for(int t = 1; t < nTime; t++){
+      absDis[t] = new double[nX];
+      relDis[t] = new double[nX];
+      double bi = ksi(t - 1, 0);
+      absDis[t][0] = fabs(U[t][0] * b + U[t][1] * c - bi);
+      double maxNorm = bi > absDis[t][0] ? bi : absDis[t][0];
+      for(int x = 1; x < nX - 1; x++){
+	bi = ksi(t - 1, x);
+	absDis[t][x] = fabs(U[t][x - 1] * a + U[t][x] * b + U[t][x + 1] * c - bi);
+	maxNorm = bi > absDis[t][x] ? bi : absDis[t][x];
+      }
+      bi = ksi(t - 1, nX - 1);
+      absDis[t][nX - 1] = fabs(U[t][nX - 2] * a + U[t][nX - 1] * b - bi);
+      maxNorm = bi > absDis[t][nX - 1] ? bi : absDis[t][nX - 1];
+      for(int x = 0; x < nX; x++){
+	relDis[t][x] = maxNorm ? absDis[t][x] / maxNorm : 0;
+      }
+    }
+    // считаем относительную невязку
+    
+    //return absDis;
+  };
+  auto relativeDiscrepancy = [=](double **U){
+    // идем по времени
+    auto ksi = [&](int t, int x){
+      return U[t][x] + dt * f(t * dt, x * h);
+    };
+    double **absDis = new double*[nTime];
+    absDis[0] = new double[nX];
+    for(int x = 0; x < nX; x++){
+      absDis[0][x] = 0;
+    }
+    for(int t = 1; t < nTime; t++){
+      absDis[t] = new double[nX];
+      absDis[t][0] = fabs(U[t][0] * b + U[t][1] * c - ksi(t-1, 0)); 
+      for(int x = 1; x < nX - 1; x++){
+	absDis[t][x] = fabs(U[t][x - 1] * a + U[t][x] * b + U[t][x + 1] * c - ksi(t - 1, x));
+      }
+      absDis[t][nX - 1] = fabs(U[t][nX - 2] * a + U[t][nX - 1] * b - ksi(t - 1, nX - 1));
+    }
+    //return absDis;
+  };
   std::ofstream resultJS("resultDATA.js");
-  auto printJSON = [&](double** data){
+  /*auto printJSON = [&](double** data){
     resultJS << "{\"u\":[";
     for(int t = 0; t < nTime; t++){
       resultJS << "[";
@@ -150,14 +218,83 @@ int main(){
       }
     }
     resultJS << "]}";
+  };*/
+  auto printDouble2DArray = [&](double **array, int xSize, int ySize){
+    resultJS << "[";
+    for(int y = 0; y < ySize; y++){
+      resultJS << "[";
+      for(int x = 0; x < xSize; x++){
+        resultJS << array[y][x];
+        if(x < (xSize - 1)){
+          resultJS << ",";
+        }
+      }
+      resultJS << "]";
+      if(y < (ySize - 1)){
+        resultJS << ",";
+      }
+    }
+    resultJS << "]";
   };
+  auto printF = [&](){
+    resultJS << "[";
+    for(int t = 0; t < nTime; t++){
+      resultJS << "[";
+      for(int x = 0; x < nX; x++){
+        resultJS << f(t * dt, x * h);
+        if(x < (nX - 1)){
+          resultJS << ",";
+        }
+      }
+      resultJS << "]";
+      if(t < (nTime - 1)){
+        resultJS << ",";
+      }
+    }
+    resultJS << "]";
+  };
+  auto printIntArray = [&](int *array, int size){
+    resultJS << "[" << array[0];
+    for(int i = 1; i < size; i++){
+      resultJS << "," << array[i];
+    }
+    resultJS << "]";
+  };
+  
+  double **jacobi = solveJacobi();
+  double **gauss = solveGauss();
+  
   resultJS << "var deltaX = " <<  h << ";";
   resultJS << "var time = " << mTime << ";";
   resultJS << "var deltaTimeShow = " << dt << ";";
-  resultJS << "var data = {\"Gauss\":";
+  /*printDouble2DArray("gauss", solveGauss(), nX, nTime);
+  printDouble2DArray("jacobi", solveJacobi(), nX, nTime);
+  printF();*/
+  resultJS << "var data = {";
+  resultJS << "jacobi:";
+  printDouble2DArray(jacobi, nX, nTime);
+  absDiscrepancy(jacobi);
+  resultJS << ",jacobiAbsDiscrepancy:";
+  printDouble2DArray(absDis, nX, nTime);
+  resultJS << ",jacobiRelDiscrepancy:";
+  printDouble2DArray(relDis, nX, nTime);
+  resultJS << ",gauss:";
+  printDouble2DArray(gauss, nX, nTime);
+  absDiscrepancy(gauss);
+  resultJS << ",gaussAbsDiscrepancy:";
+  printDouble2DArray(absDis, nX, nTime);
+  resultJS << ",gaussRelDiscrepancy:";
+  printDouble2DArray(relDis, nX, nTime);
+  resultJS << ",f:";
+  printF();
+  resultJS << ",jacobiIterationCount:";
+  printIntArray(jacobiIterationCount, nTime);
+  resultJS << "};";
+  //printDouble2DArray("f", solveJacobi(), nX, nTime);
+  /*resultJS << "var data = {\"Gauss\":";
   printJSON(solveGauss());
   resultJS << ",Jacobi:";
   printJSON(solveJacobi());
-  resultJS << "};";
+  resultJS << "};";*/
   return 0;
 }

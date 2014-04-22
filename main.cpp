@@ -121,6 +121,72 @@ int main(){
     delete[] tempX;
     return U;
   };
+  // NOTE начало решения системы итерационным методом Якоби
+  // NOTE в случае расчета электронной плотности матрица имеет вид:
+  // b c 0 0 0 0 0 | ksi[t-1][0]
+  // a b c 0 0 0 0 | ksi[t-1][1]
+  // 0 a b c 0 0 0 | ksi[t-1][2]
+  // 0 0 a b c 0 0 | ksi[t-1][3]
+  // 0 0 0 a b c 0 | ksi[t-1][4]
+  // 0 0 0 0 a b c | ksi[t-1][5]
+  // 0 0 0 0 0 a b | ksi[t-1][6]
+  double **relDis, **absDis;
+  auto absDiscrepancy = [&](double **U){
+    // идем по времени
+    auto ksi = [&](int t, int x){
+      return U[t][x] + dt * f(t * dt, x * h);
+    };
+    // считаем абсолютную невязку
+    relDis = new double*[nTime];
+    relDis[0] = new double[nX];
+    absDis = new double*[nTime];
+    absDis[0] = new double[nX];
+    for(int x = 0; x < nX; x++){
+      absDis[0][x] = 0;
+      
+    }
+    for(int t = 1; t < nTime; t++){
+      absDis[t] = new double[nX];
+      relDis[t] = new double[nX];
+      double bi = ksi(t - 1, 0);
+      absDis[t][0] = fabs(U[t][0] * b + U[t][1] * c - bi);
+      double maxNorm = bi > absDis[t][0] ? bi : absDis[t][0];
+      for(int x = 1; x < nX - 1; x++){
+	bi = ksi(t - 1, x);
+	absDis[t][x] = fabs(U[t][x - 1] * a + U[t][x] * b + U[t][x + 1] * c - bi);
+	maxNorm = bi > absDis[t][x] ? bi : absDis[t][x];
+      }
+      bi = ksi(t - 1, nX - 1);
+      absDis[t][nX - 1] = fabs(U[t][nX - 2] * a + U[t][nX - 1] * b - bi);
+      maxNorm = bi > absDis[t][nX - 1] ? bi : absDis[t][nX - 1];
+      for(int x = 0; x < nX; x++){
+	relDis[t][x] = maxNorm ? absDis[t][x] / maxNorm : 0;
+      }
+    }
+    // считаем относительную невязку
+    
+    //return absDis;
+  };
+  auto relativeDiscrepancy = [=](double **U){
+    // идем по времени
+    auto ksi = [&](int t, int x){
+      return U[t][x] + dt * f(t * dt, x * h);
+    };
+    double **absDis = new double*[nTime];
+    absDis[0] = new double[nX];
+    for(int x = 0; x < nX; x++){
+      absDis[0][x] = 0;
+    }
+    for(int t = 1; t < nTime; t++){
+      absDis[t] = new double[nX];
+      absDis[t][0] = fabs(U[t][0] * b + U[t][1] * c - ksi(t-1, 0)); 
+      for(int x = 1; x < nX - 1; x++){
+	absDis[t][x] = fabs(U[t][x - 1] * a + U[t][x] * b + U[t][x + 1] * c - ksi(t - 1, x));
+      }
+      absDis[t][nX - 1] = fabs(U[t][nX - 2] * a + U[t][nX - 1] * b - ksi(t - 1, nX - 1));
+    }
+    //return absDis;
+  };
   std::ofstream resultJS("resultDATA.js");
   /*auto printJSON = [&](double** data){
     resultJS << "{\"u\":[";
@@ -194,6 +260,10 @@ int main(){
     }
     resultJS << "]";
   };
+  
+  double **jacobi = solveJacobi();
+  double **gauss = solveGauss();
+  
   resultJS << "var deltaX = " <<  h << ";";
   resultJS << "var time = " << mTime << ";";
   resultJS << "var deltaTimeShow = " << dt << ";";
@@ -202,9 +272,19 @@ int main(){
   printF();*/
   resultJS << "var data = {";
   resultJS << "jacobi:";
-  printDouble2DArray(solveJacobi(), nX, nTime);
+  printDouble2DArray(jacobi, nX, nTime);
+  absDiscrepancy(jacobi);
+  resultJS << ",jacobiAbsDiscrepancy:";
+  printDouble2DArray(absDis, nX, nTime);
+  resultJS << ",jacobiRelDiscrepancy:";
+  printDouble2DArray(relDis, nX, nTime);
   resultJS << ",gauss:";
-  printDouble2DArray(solveGauss(), nX, nTime);
+  printDouble2DArray(gauss, nX, nTime);
+  absDiscrepancy(gauss);
+  resultJS << ",gaussAbsDiscrepancy:";
+  printDouble2DArray(absDis, nX, nTime);
+  resultJS << ",gaussRelDiscrepancy:";
+  printDouble2DArray(relDis, nX, nTime);
   resultJS << ",f:";
   printF();
   resultJS << ",jacobiIterationCount:";

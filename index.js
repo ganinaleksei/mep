@@ -35,6 +35,10 @@ $(document).ready(function(){
     obj.gauss = adapter(obj.gauss);
     obj.jacobi = adapter(obj.jacobi);
     obj.f = adapter(obj.f);
+    obj.jacobiAbsDiscrepancy = adapter(obj.jacobiAbsDiscrepancy);
+    obj.gaussAbsDiscrepancy = adapter(obj.gaussAbsDiscrepancy);
+    obj.jacobiRelDiscrepancy = adapter(obj.jacobiRelDiscrepancy);
+    obj.gaussRelDiscrepancy = adapter(obj.gaussRelDiscrepancy);
     //console.log(data);
     //console.log(data);
     $("#info").show();
@@ -59,6 +63,46 @@ $(document).ready(function(){
         }
       }
     );
+    window.absDiscrepancyPlot = $.jqplot("absDiscrepancy",
+      [obj.jacobiAbsDiscrepancy[0].map(function(count, i){
+         return [(i * deltaX), count];
+       }),
+       obj.gaussAbsDiscrepancy[0].map(function(count, i){
+         return [(i * deltaX), count];
+       })
+      ],
+      {
+        series:[{showMarker:false, color: "red"}, {showMarker:false, color: "green"}],
+        axes:{
+          xaxis:{
+            label: "X"
+          },
+          yaxis:{
+            label: "D"
+          }
+        }
+      }
+    );
+    window.relDiscrepancyPlot = $.jqplot("relDiscrepancy",
+      [obj.jacobiRelDiscrepancy[0].map(function(count, i){
+         return [(i * deltaX), count];
+       }),
+       obj.gaussRelDiscrepancy[0].map(function(count, i){
+         return [(i * deltaX), count];
+       })
+      ],
+      {
+        series:[{showMarker:false, color: "red"}, {showMarker:false, color: "green"}],
+        axes:{
+          xaxis:{
+            label: "X"
+          },
+          yaxis:{
+            label: "D"
+          }
+        }
+      }
+    );
     var i = 1;
     var delay = 1;
     window.d = 1;
@@ -73,15 +117,23 @@ $(document).ready(function(){
         eplot.series[2].data = obj.jacobi[i];
         eplot.resetAxesScale(); 
         eplot.replot();
+	absDiscrepancyPlot.series[0].data = obj.jacobiAbsDiscrepancy[i];
+	absDiscrepancyPlot.series[1].data = obj.gaussAbsDiscrepancy[i];
+	absDiscrepancyPlot.resetAxesScale();
+	absDiscrepancyPlot.replot();
+	relDiscrepancyPlot.series[0].data = obj.jacobiRelDiscrepancy[i];
+	relDiscrepancyPlot.series[1].data = obj.gaussRelDiscrepancy[i];
+	relDiscrepancyPlot.resetAxesScale();
+	relDiscrepancyPlot.replot();
       }
     }, 1000 * delay);
     $("#plusSped").click(function(){
       d += 1;
-      move();
+      //move();
     });
     $("#minusSped").click(function(){
       d -= 1;
-      move();
+      //move();
     });
   }
 });

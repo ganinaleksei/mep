@@ -13,7 +13,7 @@
     <span>Абсолютная невязка</span>
     <div id="absDiscrepancy" style = "position: relative; left: 40px; max-width: 960px;"></div>
     <span>Относительная невязка</span>
-    <div id="relDiscrepancy" style = "position: relative; left: 40px; max-width: 960px;"></div>
+    <div id="absDiscrepancy" style = "position: relative; left: 40px; max-width: 960px;"></div>
     <div id="info">
       <div id="time"></div>
     </div>
